@@ -1,104 +1,104 @@
 #include "sensor_simulation.h"
-#include <windows.h> // For Sleep()
-#include <signal.h>  // For handling signals
-#include <math.h>    // For mathematical functions
+#include <windows.h> // for Sleep()
+#include <signal.h>  // for handling signals
+#include <math.h>    // for mathematical functions
 #include <stdio.h>
 
-// Global variables for controlling simulation
-volatile int running = 1; // Flag for running the simulation
-int sleepTime = 10; // Set to 100 milliseconds for faster printing
-FILE *logFile; // File pointer for logging data
-float sumX = 0.0, sumY = 0.0, sumZ = 0.0; // Sums for average calculation
-int count = 0; // Count of readings
-#define MAX_READINGS 1000 // Define max readings to store
-SensorData readings[MAX_READINGS]; // Array to store readings
+// global variables for controlling simulation
+volatile int running = 1; // flag for running the simulation
+int sleepTime = 10; // set to 10 milliseconds for faster printing
+FILE *logFile; // file pointer for logging data
+float sumX = 0.0, sumY = 0.0, sumZ = 0.0; // sums for average calculation
+int count = 0; // count of readings
+#define MAX_READINGS 1000 // define max readings to store
+SensorData readings[MAX_READINGS]; // array to store readings
 
-// Function to simulate reading data from a sensor
+// function to simulate reading data from a sensor
 SensorData readSimulatedSensor() {
     SensorData data;
-    data.x = ((float)rand() / (float)(RAND_MAX)) * 2.0 - 1.0; // Range: -1.0 to 1.0
-    data.y = ((float)rand() / (float)(RAND_MAX)) * 2.0 - 1.0;
-    data.z = ((float)rand() / (float)(RAND_MAX)) * 2.0 - 1.0;
-    return data;
+    data.x = ((float)rand() / (float)(RAND_MAX)) * 2.0 - 1.0; // range: -1.0 to 1.0
+    data.y = ((float)rand() / (float)(RAND_MAX)) * 2.0 - 1.0; // generate random Y
+    data.z = ((float)rand() / (float)(RAND_MAX)) * 2.0 - 1.0; // generate random Z
+    return data; // return the simulated data
 }
 
-// Signal handler for graceful shutdown
+// signal handler for graceful shutdown
 void handleSignal(int signal) {
     printf("\nExiting gracefully...\n");
-    running = 0; // Set the running flag to false
+    running = 0; // set the running flag to false
     if (logFile) {
-        fclose(logFile); // Close log file
+        fclose(logFile); // close log file
     }
 }
 
-// Threshold value for alerting
-float threshold = 0.8;
+// threshold value for alerting
+float threshold = 0.8; // default threshold value
 
-// Main function with improved initialization
+// main function with improved initialization
 int main(int argc, char *argv[]) {
-    // Seed the random number generator
+    // seed the random number generator
     srand(time(0));
 
-    // Open log file
+    // open log file
     logFile = fopen("sensor_data_log.csv", "w");
     if (!logFile) {
-        fprintf(stderr, "Error: Could not open log file for writing.\n");
-        return EXIT_FAILURE; // Exit with failure
+        fprintf(stderr, "Error: Could not open log file for writing.\n"); // handle log file opening failure
+        return EXIT_FAILURE; // exit with failure
     }
-    fprintf(logFile, "Timestamp,X,Y,Z\n"); // Write header
+    fprintf(logFile, "Timestamp,X,Y,Z\n"); // write header
 
-    // Configure sleep time and threshold via command-line arguments
+    // configure sleep time and threshold via command-line arguments
     if (argc > 1) {
-        sleepTime = atoi(argv[1]); // Set sleep time from command-line argument
+        sleepTime = atoi(argv[1]); // set sleep time from command-line argument
         if (sleepTime <= 0) {
-            fprintf(stderr, "Invalid sleep time. Using default: 100ms\n");
-            sleepTime = 10; // Default to 100ms
+            fprintf(stderr, "Invalid sleep time. Using default: 10ms\n"); // warn for invalid input
+            sleepTime = 10; // default to 10ms
         }
     }
 
     if (argc > 2) {
-        threshold = atof(argv[2]); // Set threshold from command-line argument
+        threshold = atof(argv[2]); // set threshold from command-line argument
         if (threshold < 0) {
-            fprintf(stderr, "Invalid threshold. Using default: 0.8\n");
-            threshold = 0.8;
+            fprintf(stderr, "Invalid threshold. Using default: 0.8\n"); // warn for invalid input
+            threshold = 0.8; // reset to default
         }
     }
 
-    // Register signal handler for graceful shutdown
+    // register signal handler for graceful shutdown
     signal(SIGINT, handleSignal);
 
-    // Loop to continuously read sensor data
+    // loop to continuously read sensor data
     while (running) {
-        // Get simulated data
+        // get simulated data
         SensorData data = readSimulatedSensor();
         
-        // Print the data
+        // print the data
         printf("Sensor Data - X: %.2f, Y: %.2f, Z: %.2f\n", data.x, data.y, data.z);
         
-        // Log the data to the file
+        // log the data to the file
         logData(data, logFile);
         
-        // Check for threshold exceedance
-        checkThreshold(data, threshold); // Pass threshold to the function
+        // check for threshold exceedance
+        checkThreshold(data, threshold); // pass threshold to the function
 
-        // Update sums for statistics calculation
-        readings[count] = data; // Store the reading
-        sumX += data.x;
-        sumY += data.y;
-        sumZ += data.z;
-        count++;
+        // update sums for statistics calculation
+        readings[count] = data; // store the reading
+        sumX += data.x; // accumulate sum for X
+        sumY += data.y; // accumulate sum for Y
+        sumZ += data.z; // accumulate sum for Z
+        count++; // increment reading count
 
-        // Sleep for specified milliseconds to simulate real-time reading
-        Sleep(sleepTime);
+        // sleep for specified milliseconds to simulate real-time reading
+        Sleep(sleepTime); // pause execution
     }
 
-    // Calculate and print statistics before exiting
+    // calculate and print statistics before exiting
     calculateAndPrintStatistics(readings, count);
     
-    // Close the log file if open
+    // close the log file if open
     if (logFile) {
-        fclose(logFile);
+        fclose(logFile); // clean up log file
     }
 
-    return 0;
+    return 0; // exit successfully
 }
